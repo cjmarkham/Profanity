@@ -1,35 +1,42 @@
 <?php
 
-$words = array(
-	'shit',
-	'fuck',
-	'wank',
-	'fucking',
-	'bastard',
-	'cunt'
-);
-
-$str = $_GET['str'];
-$orig = $str;
-
-foreach($words as $w)
+function sanitize($str)
 {
-	$str = preg_replace('/'.$w.'/i', str_repeat('*', strlen($w)), $str);
+	$orig = $str;
 	
-	$check = explode(" ",$str) ;
-
-	foreach($check as $c)
+	$words = array(
+		'shit',
+		'fuck',
+		'wank',
+		'fucking',
+		'bastard',
+		'cunt'
+	);
+	
+	foreach($words as $w)
 	{
-		if(metaphone(trim($c)) == metaphone(trim($w)))
+		$str = preg_replace('/'.$w.'/i', str_repeat('*', strlen($w)), $str);
+		
+		$check = explode(" ",$str) ;
+
+		foreach($check as $c)
 		{
-			$str = preg_replace('/'.$c.'/im', str_repeat('*', strlen($c)) ,$str) ;
+			if(metaphone(trim($c)) == metaphone(trim($w)))
+			{
+				$str = preg_replace('/'.$c.'/im', str_repeat('*', strlen($c)) ,$str) ;
+			}
 		}
 	}
+
+	echo '<div>'.nl2br($orig).'</div>';
+	echo '<div>'.nl2br($str).'</div>';
 }
 
-echo '<div>'.nl2br($orig).'</div>';
-echo '<div>'.nl2br($str).'</div>';
-
+if ($_GET['str'])
+{
+	$str = $_GET['str'];
+	sanitize($str);
+}
 ?>
 
 <style>
@@ -40,27 +47,17 @@ body
 	text-align:center;
 }
 
-div, ul
+div
 {
 	padding:5px;
 	border:1px solid #dadada;
 	width:400px;
 	margin:0 auto 10px auto;
-	list-style:none;
 }
 
 </style>
 
 <form method="get">
-	<textarea rows="5" cols="40" placeholder="Enter swear" name="str"></textarea>
-	<br />
+	<input type="text" style="width:340px" placeholder="Enter swear" name="str" />
 	<input type="submit" value="Sanitize" />
 </form>
-
-Sanitized words:
-
-<ul>
-<?php foreach ($words as $w) { ?>
-	<li><?php echo $w; ?></li>
-<?php } ?>
-</ul>
