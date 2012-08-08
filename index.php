@@ -13,29 +13,49 @@ function sanitize($str)
 		'cunt'
 	);
 	
-	foreach($words as $w)
+	$words2 = array(
+		'shit',
+		'fuck',
+		'wank',
+		'fucking',
+		'bastard'
+	);
+	
+	$check = explode(" ",$str);
+	echo '--Calculating levenshtein distance--<br />';
+	foreach($check as $c)
 	{
-		$str = preg_replace('/'.$w.'/i', str_repeat('*', strlen($w)), $str);
-		
-		$check = explode(" ",$str) ;
-
-		foreach($check as $c)
+		foreach ($words2 as $w)
 		{
-			if(metaphone(trim($c)) == metaphone(trim($w)))
+			$lev = levenshtein($c, $w);
+			$max = max(strlen($c), strlen($w));
+						
+			$percentage = round((1 - $lev / max(strlen($c), strlen($w))) * 100, 2);
+			echo $c.' is a '.$percentage.'% match with '.$w.'<br />';
+			
+			if(metaphone(trim($c)) === metaphone(trim($w)))
 			{
-				$str = preg_replace('/'.$c.'/im', str_repeat('*', strlen($c)) ,$str) ;
+				$str = preg_replace('/'.$c.'/i', str_repeat('*', strlen($c)) ,$str);
 			}
 		}
 	}
+	
+	foreach($words as $w)
+	{
+		$str = preg_replace('/'.$w.'/i', str_repeat('*', strlen($w)), $str);
+	}
 
-	echo '<div>'.nl2br($orig).'</div>';
-	echo '<div>'.nl2br($str).'</div>';
+	echo '<br />--Sanitized output (JSON)--<br />';
+	echo json_encode(array(
+		'original' => $orig,
+		'sanitized' => $str
+	));
 }
 
 if ($_GET['str'])
 {
 	$str = $_GET['str'];
-	sanitize($str);
+	return sanitize($str);
 }
 ?>
 
