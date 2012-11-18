@@ -1,13 +1,6 @@
 <?php
 error_reporting(E_ALL & ~E_NOTICE);
 
-include '../../header.html';
-include 'config.php';
-include 'db.php';
-
-Db::$local = Db::connect($db_config['local']);
-Db::$master = Db::connect($db_config['master']);
-
 function sanitize($str)
 {
 	$orig = $str;
@@ -47,10 +40,6 @@ function sanitize($str)
 		'nigger',
 		'nigga'
 	);
-
-	$do_lev = true;
-	$do_preg = true;
-	$do_trim = true;
 
 	// find word and calculate the context in which it was used
 	foreach ($words as $k => $w)
@@ -183,51 +172,5 @@ function sanitize($str)
 		'original' => $orig,
 		'sanitized' => $str
 	));
-
-	if ($str == $orig)
-	{
-		Db::$master->prex("INSERT IGNORE INTO words (word) VALUES (?)", array($str));
-	}
-	else
-	{
-		echo '<br /><br /><h1>Epic Fail <small>You failed to bypass the filter</small></h1>';
-	}
 }
-?>
-
-<div style="text-align:center">
-	<form method="get" class="clearfix">
-		<h2>
-			Profanity Filter
-			<small>Enter a swear word below. Use spaces, symbols, anything you want.</small>
-		</h2>
-		<input value="<?=$_GET['str']?>" type="text" style="font-size:20px;padding:20px;border-radius:10px" class="span6" placeholder="Enter swear word" name="str" /><br />
-		<button style="font-size:20px;padding:20px !important;border-radius:10px;width:490px" class="btn btn-primary">Sanitize</button>
-	</form>
-
-	<?
-	if (isset($_GET['str']))
-	{
-		$str = urldecode($_GET['str']);
-		echo sanitize($str);
-		echo '<hr />';
-	}
-?>
-</div>
-<?
-$recent = array();
-$results = Db::$local->fetch_results("SELECT * FROM words LIMIT 50");
-foreach ($results as $r)
-{
-	$recent[] = '<span class="btn">'.$r['word'].'</span>';
-}
-?>
-
-<fieldset>
-	<legend>Recent Words</legend>
-	<?=implode(',', $recent)?>
-</fieldset>
-
-<?
-include '../../footer.html';
 ?>
