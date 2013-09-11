@@ -85,28 +85,26 @@ class Sanitize
 	protected function sounds_like()
 	{
 		// Get individual words
-		$check = explode(' ', $this->str);
+		$individual_words = explode(' ', $this->str);
 
 		// loop through words
-		foreach ($check as $k => $c)
+		foreach ($individual_words as $k => $word)
 		{
-			$c = trim($c);
-
 			// replace concurrent letters
 			// this doesnt work if there are spaces inbetween concurrent letters
-			$c2 = preg_replace('/(.)\\1+/i', '$1', $c); 
+			$word2 = preg_replace('/(.)\\1+/i', '$1', $word); 
 
-			if (in_array($c2, $this->words))
+			if (in_array($word2, $this->words))
 			{
-				$this->str = str_replace($c, $c2, $this->str);
+				$this->str = str_replace($word, $word2, $this->str);
 			}
 
 			// Replace if in sounds like array
-			foreach ($this->words2 as $w)
+			foreach ($this->words2 as $_word)
 			{
-				if (metaphone($c) === metaphone($w))
+				if (metaphone($word) === metaphone($_word))
 				{
-					$this->str = str_replace($c, str_repeat('*', strlen($c)), $this->str);
+					$this->str = str_replace($word, str_repeat('*', strlen($word)), $this->str);
 				}
 			}
 		}
@@ -115,9 +113,9 @@ class Sanitize
 	public function direct_match()
 	{
 		// simple preg replace of words in array
-		foreach ($this->words as $w)
+		foreach ($this->words as $word)
 		{
-			$this->str = str_replace($w, str_repeat('*', strlen($w)), $this->str);
+			$this->str = str_replace($word, str_repeat('*', strlen($word)), $this->str);
 		}
 	}
 
@@ -126,15 +124,15 @@ class Sanitize
 		// trim whitespace to replace swears seperated by spaces
 		$this->str = preg_replace($this->spaces, '-', $this->str);
 
-		foreach ($this->words as $k => $w)
+		foreach ($this->words as $word)
 		{
 			// split the word by the letter
-			$letters = str_split($w);
+			$letters = str_split($word);
 			// then join them via a dash
 			$dashed_word = implode('-', $letters);
 
 			// check to see if this dashed word is in the string
-			$this->str = preg_replace('/' . $dashed_word . '/i', str_repeat('*', strlen($w)), $this->str);
+			$this->str = preg_replace('/' . $dashed_word . '/i', str_repeat('*', strlen($word)), $this->str);
 		}
 
 		// replace the dashed and re-add spaced
@@ -150,7 +148,9 @@ class Sanitize
 
 		if ($this->str == $this->orig)
 		{
-			Db::$master->prex("INSERT IGNORE INTO words (word) VALUES (?)", array($this->str));
+			Db::$master->prex("INSERT IGNORE INTO words (word) VALUES (?)", array(
+				$this->str
+			));
 		}
 		else
 		{
