@@ -1,0 +1,4 @@
+Profanity
+=========
+
+PHP Profanity filter
