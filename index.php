@@ -75,8 +75,8 @@ if (isset($_GET['str']) && $raw)
 
 	$str = urldecode($_GET['str']);
 
-	$sanitize = sanitize($str, true);
-	exit($sanitize);
+	$sanitize = new Sanitize($str, true);
+	exit ($sanitize);
 }
 
 include '../../header.html';
@@ -99,7 +99,7 @@ include '../../header.html';
 	{
 		$str = urldecode($_GET['str']);
 		$start = microtime(true);
-		echo sanitize($str);
+		echo new Sanitize($str);
 		$end = round(microtime(true) - $start, 4);
 		echo '<hr />';
 	}

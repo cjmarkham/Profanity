@@ -15,13 +15,10 @@ function generate_key($url = false)
 	return $key;
 }
 
-function sanitize($str, $raw = false)
+class Sanitize
 {
-	$orig = $str;
-	
-	$str = strtolower($str);
 
-	$words = array(
+	protected $words = array(
 		'shit',
 		'fucker',
 		'fuck',
@@ -46,7 +43,7 @@ function sanitize($str, $raw = false)
 	);
 	
 	// sounds like
-	$words2 = array(
+	protected $words2 = array(
 		'motherfucker',
 		'shit',
 		'fuk',
@@ -66,86 +63,105 @@ function sanitize($str, $raw = false)
 		'cunt'
 	);
 
-	$symbols = array('$', '0', '(', '@', '3', '!', '1', '5');
-	$letters = array('s', 'o', 'c', 'a', 'e', 'i', 'i', 's');
-	$spaces = '/(\s{1,}|\-{1,}|\_{1,}|\.{1,}|\|{1,})/';
+	protected $symbols = array('$', '0', '(', '@', '3', '!', '1', '5');
+	protected $letters = array('s', 'o', 'c', 'a', 'e', 'i', 'i', 's');
+	protected $spaces = '/(\s{1,}|\-{1,}|\_{1,}|\.{1,}|\|{1,})/';
 
-	$str = $symbol_replace = str_replace($symbols, $letters, $str);
-	
-	// Get individual words
-	$check = explode(' ', $str);
+	protected $str;
+	protected $orig;
+	protected $output;
 
-	// loop through words
-	foreach($check as $k => $c)
+	public function __construct($str)
 	{
-		$c = trim($c);
-		$c2 = preg_replace('/(.)\\1+/i', '$1', $c); 
+		$this->orig = $this->str = strtolower($str);
 
-		if (in_array($c2, $words))
-		{
-			$str = str_replace($c, $c2, $str);
-		}
+		$this->sounds_like();
+		$this->direct_match();
+		$this->space_replace();
 
-		// Replace if in sounds like array
-		foreach ($words2 as $w)
+		return $this->output();
+	}
+
+	protected function sounds_like()
+	{
+		// Get individual words
+		$check = explode(' ', $this->str);
+
+		// loop through words
+		foreach ($check as $k => $c)
 		{
-			if (metaphone($c) === metaphone($w))
+			$c = trim($c);
+
+			// replace concurrent letters
+			// this doesnt work if there are spaces inbetween concurrent letters
+			$c2 = preg_replace('/(.)\\1+/i', '$1', $c); 
+
+			if (in_array($c2, $this->words))
 			{
-				$str = str_replace($c, str_repeat('*', strlen($c)), $str);
+				$this->str = str_replace($c, $c2, $this->str);
+			}
+
+			// Replace if in sounds like array
+			foreach ($this->words2 as $w)
+			{
+				if (metaphone($c) === metaphone($w))
+				{
+					$this->str = str_replace($c, str_repeat('*', strlen($c)), $this->str);
+				}
 			}
 		}
 	}
 
-	// simple preg replace of words in array
-	foreach ($words as $w)
+	public function direct_match()
 	{
-		$str = str_replace($w, str_repeat('*', strlen($w)), $str);
-	}
-
-	// trim whitespace to replace swears seperated by spaces
-	$str = preg_replace($spaces, '-', $str);
-
-	// split swear array and add
-	foreach ($words as $k => $w)
-	{
-		$_w = str_split($w);
-		$_w = implode('-', $_w);
-
-		$str = preg_replace('/'.$_w.'/i', str_repeat('*', strlen($w)), $str);
-	}
-
-	$str = str_replace('-', ' ', $str);
-	
-	$json = array(
-		'original'  => $orig,
-		'sanitized' => $str
-	);
-
-	if ($str == $orig)
-	{
-		Db::$master->prex("INSERT IGNORE INTO words (word) VALUES (?)", array($str));
-	}
-	else
-	{
-		if (!$raw) 
+		// simple preg replace of words in array
+		foreach ($this->words as $w)
 		{
-			$json['assumed'] = $symbol_replace;
-			echo '<fieldset><legend>Epic Fail <small>You failed to bypass the filter</small></legend>';
-			echo '<pre style="text-align:left">';
-			echo "
-			{
-			    \"original\"  : '{$json['original']}',
-			    \"sanitized\" : '{$json['sanitized']}',
-			    \"assumed\"   : '{$json['assumed']}'
-			}
-			";
-			echo '</pre></fieldset>';
+			$this->str = str_replace($w, str_repeat('*', strlen($w)), $this->str);
+		}
+	}
+
+	public function space_replace()
+	{
+		// trim whitespace to replace swears seperated by spaces
+		$this->str = preg_replace($this->spaces, '-', $this->str);
+
+		foreach ($this->words as $k => $w)
+		{
+			// split the word by the letter
+			$letters = str_split($w);
+			// then join them via a dash
+			$dashed_word = implode('-', $letters);
+
+			// check to see if this dashed word is in the string
+			$this->str = preg_replace('/' . $dashed_word . '/i', str_repeat('*', strlen($w)), $this->str);
+		}
+
+		// replace the dashed and re-add spaced
+		$this->str = str_replace('-', ' ', $this->str);
+	}
+	
+	protected function output()
+	{
+		$this->output = array(
+			'original'  => $this->orig,
+			'sanitized' => $this->str
+		);
+
+		if ($this->str == $this->orig)
+		{
+			Db::$master->prex("INSERT IGNORE INTO words (word) VALUES (?)", array($this->str));
 		}
 		else
 		{
-			return json_encode($json);
+			return json_encode($this->output);
 		}
 	}
 
+
+	public function __toString()
+	{
+		return json_encode($this->output);
+	}
 	
 }
