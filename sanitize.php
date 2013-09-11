@@ -94,6 +94,7 @@ class Sanitize
 			// this doesnt work if there are spaces inbetween concurrent letters
 			$word2 = preg_replace('/(.)\\1+/i', '$1', $word); 
 
+			// Check if the new trimmed word is in swear list
 			if (in_array($word2, $this->words))
 			{
 				$this->str = str_replace($word, $word2, $this->str);
