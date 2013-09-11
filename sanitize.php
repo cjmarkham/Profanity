@@ -76,6 +76,7 @@ class Sanitize
 		$this->orig = $this->str = strtolower($str);
 
 		$this->sounds_like();
+		$this->concurrent_letters();
 		$this->direct_match();
 		$this->space_replace();
 
@@ -83,6 +84,25 @@ class Sanitize
 	}
 
 	protected function sounds_like()
+	{
+		// Get individual words
+		$individual_words = explode(' ', $this->str);
+
+		// loop through words
+		foreach ($individual_words as $k => $word)
+		{
+			// Replace if in sounds like array
+			foreach ($this->words2 as $_word)
+			{
+				if (metaphone($word) === metaphone($_word))
+				{
+					$this->str = str_replace($word, str_repeat('*', strlen($word)), $this->str);
+				}
+			}
+		}
+	}
+
+	protected function concurrent_letters()
 	{
 		// Get individual words
 		$individual_words = explode(' ', $this->str);
@@ -100,12 +120,19 @@ class Sanitize
 				$this->str = str_replace($word, $word2, $this->str);
 			}
 
-			// Replace if in sounds like array
-			foreach ($this->words2 as $_word)
+			// if word length less than lowest word length in swear array
+			// try and build a swear with neighbour characters
+			$lengths = array_map('strlen', $this->words);
+
+			if (strlen($word) < min($lengths))
 			{
-				if (metaphone($word) === metaphone($_word))
+				$spaced_word = $individual_words[$k - 1] . ' ' . $word . ' ' . $individual_words[$k + 1];
+				$word2 = preg_replace('/(.)\\1+/i', '$1', str_replace(' ', '', $spaced_word));
+
+				// Check if the new word is in swear list
+				if (in_array($word2, $this->words))
 				{
-					$this->str = str_replace($word, str_repeat('*', strlen($word)), $this->str);
+					$this->str = str_replace(trim($spaced_word), str_repeat('*', strlen($word2)), $this->str);
 				}
 			}
 		}
