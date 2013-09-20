@@ -1,20 +1,4 @@
 <?php
-
-function get_api_key($key)
-{
-	return Db::$local->fetch_assoc("SELECT * FROM apikeys WHERE apikey=? LIMIT 1", array(
-		$key
-	));
-}
-
-function generate_key($url = false)
-{
-	$url = ($url !== false) ? $url : $_SERVER['HTTP_REFERER'];
-	$key = base64_encode($key . uniqid());
-
-	return $key;
-}
-
 class Sanitize
 {
 
@@ -174,13 +158,7 @@ class Sanitize
 			'sanitized' => $this->str
 		);
 
-		if ($this->str == $this->orig)
-		{
-			Db::$master->prex("INSERT IGNORE INTO words (word) VALUES (?)", array(
-				$this->str
-			));
-		}
-		else
+		if ($this->str !== $this->orig)
 		{
 			return json_encode($this->output);
 		}
